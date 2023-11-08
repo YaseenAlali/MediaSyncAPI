@@ -1,7 +1,10 @@
+using MediaSyncAPI.MediaController;
+using System.IO;
+using System.Net;
+using System.Text.RegularExpressions;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -14,29 +17,36 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
 
-app.MapGet("/weatherforecast", () =>
+MediaList.APIEntry();
+
+app.MapGet("/list", () =>
 {
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
+    var forecast = MediaList.APIList();
     return forecast;
 })
-.WithName("GetWeatherForecast")
+.WithName("list")
 .WithOpenApi();
+
+app.MapGet("/stream", (RequestDelegate)(async (HttpContext context) =>
+{
+    //string path = "Rock\\01 - Cult Of Personality.flac";
+    var path = context.Request.Query["file"];
+    await FileServer.StreamFile(context, path);
+}));
+
+
+app.MapGet("/download", (RequestDelegate)(async (HttpContext context) =>
+{
+    var path = context.Request.Query["file"];
+    await FileServer.DownloadFile(context, path);   
+}));
+
+app.MapPost("/upload", (RequestDelegate)(async (HttpContext context) =>
+{
+    await FileServer.UploadFile(context);
+}));
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+
