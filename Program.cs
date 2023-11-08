@@ -1,9 +1,15 @@
 using MediaSyncAPI.MediaController;
+using MediaSyncAPI.Utilities;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
+string url = Networking.GenerateUrl();
+if (!string.IsNullOrEmpty(url))
+{ 
+    builder.WebHost.UseUrls(url);
+}
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -46,6 +52,8 @@ app.MapPost("/upload", (RequestDelegate)(async (HttpContext context) =>
 {
     await FileServer.UploadFile(context);
 }));
+
+
 
 app.Run();
 
