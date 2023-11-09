@@ -48,19 +48,5 @@ namespace MediaSyncAPI.Utilities
                 return $"Error: {ex.Message}";
             }
         }
-
-        public static string CreateUniqueDirectory()
-        {
-            try { 
-                string uniqueId = Guid.NewGuid().ToString();
-                Directory.CreateDirectory($@".\DownloadedFiles\{uniqueId}");
-                return uniqueId;
-            }
-            catch (Exception e) {
-                Console.WriteLine(e.Message);
-                return "";
-            }
-            
-        }
     }
 }

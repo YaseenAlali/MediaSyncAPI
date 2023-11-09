@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using MediaSyncAPI.Utilities;
+using Newtonsoft.Json;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -19,19 +20,9 @@ namespace MediaSyncAPI.MediaController
         {
             try
             {
-                string[] mediaExtensions =
-                {
-                    "mp3", ".wav", ".flac", "opus", ".ogg", ".aac"
-                };
-
-
                 if (Directory.Exists(MediaPath))
                 {
-                    var audioFiles = Directory.GetFiles(MediaPath, "*.*", SearchOption.AllDirectories)
-                    .Where(file => mediaExtensions.Contains(Path.GetExtension(file).ToLower()))
-                    .Select(file => Path.Combine(MediaPath, file.Replace(MediaPath, "")))
-                    .Select(path => path.Replace(Path.DirectorySeparatorChar, '/')) 
-                    .ToArray();
+                    var audioFiles = FileSystem.ListAudioFiles(MediaPath);
 
                     var result = new { AudioFiles = audioFiles };
 

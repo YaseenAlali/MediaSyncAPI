@@ -220,7 +220,7 @@ namespace MediaSyncAPI.MediaController
             }
         }
         public static async Task DownloadFromYoutube(HttpContext context, string url) {
-            var directoryResult = ProcessHandling.CreateUniqueDirectory();
+            var directoryResult = FileSystem.CreateUniqueDirectory();
             if (string.IsNullOrEmpty(directoryResult))
             {
                 await ErrorHandlers.HandleDownloadRequestFileSystemError(context, "Failed to create drectory");

@@ -77,5 +77,43 @@
                 return false;
             }
         }
+
+        public static string[] ListAudioFiles(string path)
+        {
+            try
+            {
+                string[] mediaExtensions =
+{
+                    "mp3", ".wav", ".flac", "opus", ".ogg", ".aac"
+                };
+
+                return Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
+                    .Where(file => mediaExtensions.Contains(Path.GetExtension(file).ToLower()))
+                    .Select(file => Path.Combine(path, file.Replace(path, "")))
+                    .Select(path => path.Replace(Path.DirectorySeparatorChar, '/'))
+                    .ToArray();
+            }
+            catch(Exception ex)
+            {
+                Console.Write(ex.Message);
+                return new string[0];
+            }
+        }
+
+        public static string CreateUniqueDirectory()
+        {
+            try
+            {
+                string uniqueId = Guid.NewGuid().ToString();
+                Directory.CreateDirectory($@".\DownloadedFiles\{uniqueId}");
+                return uniqueId;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return "";
+            }
+
+        }
     }
 }
