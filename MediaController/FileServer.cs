@@ -12,41 +12,19 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
+using MediaSyncAPI.Utilities;
 
 namespace MediaSyncAPI.MediaController
 {
     public class FileServer
     {
-        private static async Task HandleNotFoundError(HttpContext context, string error = "")
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-            await context.Response.WriteAsync($"Error: {error}");
-        }
-
-        private static async Task HandleFileAlreadyExistsError(HttpContext context, string error = "")
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
-            await context.Response.WriteAsync($"No content: {error}");
-        }
-
-        private static async Task HandleEmptyUploadRequestForm(HttpContext context, string error = "") {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            await context.Response.WriteAsync($"Invalid request : {error}");
-        }
-
-        private static async Task HandleStreamError(HttpContext context, string error = "")
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            await context.Response.WriteAsync($"internal error : {error}");
-        }
-
-        public static async Task<bool>CheckIfFileExistsNotSupposedToExist(HttpContext context, string path)
+        public static async Task<bool>CheckIfFileExistsNotSupposedToExist(HttpContext context, string path) 
         {
             try
             {
                 if (File.Exists(path))
                 {
-                    await HandleFileAlreadyExistsError(context, "already exists");
+                    await ErrorHandlers.HandleFileAlreadyExistsError(context, "already exists");
                     return false;
                 }
                 else
@@ -55,7 +33,7 @@ namespace MediaSyncAPI.MediaController
                 }
             }
             catch (Exception e) {
-                await HandleFileAlreadyExistsError(context, e.Message);
+                await ErrorHandlers.HandleFileAlreadyExistsError(context, e.Message);
                 return false;
             }
         }
@@ -67,14 +45,14 @@ namespace MediaSyncAPI.MediaController
             {
                 if (string.IsNullOrEmpty(path) || !File.Exists(path))
                 {
-                    await HandleNotFoundError(context, "File not found");
+                    await ErrorHandlers.HandleNotFoundError(context, "File not found");
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                await HandleNotFoundError(context, ex.Message);
+                await ErrorHandlers.HandleNotFoundError(context, ex.Message);
                 return false;
             }
         }
@@ -117,26 +95,48 @@ namespace MediaSyncAPI.MediaController
             }
             catch (Exception ex)
             {
-                await HandleStreamError(context, ex.Message);
+                await ErrorHandlers.HandleStreamError(context, ex.Message);
             }
            
         }
 
+        public static async Task HandleDownloadRequest(HttpContext context)  {
+            var path = await CheckRetrieveFileFormValid(context);
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            await FileServer.DownloadFile(context, path);
+        }
+
+        public static async Task<string> CheckRetrieveFileFormValid(HttpContext context)
+        {
+            var path = context.Request.Query["file"];
+
+            if (string.IsNullOrEmpty(path))
+            {
+                await ErrorHandlers.HandleEmptyPathError(context, "Empty path");
+                return "";
+            }
+            path = $"{MediaList.MediaPath}\\{WebUtility.UrlDecode(path)}";
+
+            bool exists = await CheckFileExistsSupposedToExist(context, path);
+            if (!exists)
+            {
+                return "";
+            }
+            return path;
+        }
+
+
         public static async Task DownloadFile(HttpContext context, string path)
         {
             try {
-                path = $"{MediaList.MediaPath}\\{WebUtility.UrlDecode(path)}";
-                bool exists = await CheckFileExistsSupposedToExist(context, path);
-                if (!exists)
-                {
-                    return;
-                }
-
-
                 string fileName = Path.GetFileName(path);
                 Stream fileStream = File.OpenRead(path);
 
-                context.Response.ContentType = "application/octet-stream";
+                context.Response.ContentType = "audio/mp3";
                 var contentDisposition = new ContentDispositionHeaderValue("attachment")
                 {
                     FileNameStar = fileName,
@@ -146,7 +146,7 @@ namespace MediaSyncAPI.MediaController
                 await fileStream.CopyToAsync(context.Response.Body);
             }
             catch (Exception error) {
-                await HandleStreamError(context, error.Message);
+                await ErrorHandlers.HandleStreamError(context, error.Message);
             }
             
         }
@@ -191,15 +191,104 @@ namespace MediaSyncAPI.MediaController
                 }
                 else
                 {
-                    await HandleEmptyUploadRequestForm(context, "form content type is missing.");
+                    await ErrorHandlers.HandleEmptyUploadRequestForm(context, "form content type is missing.");
                 }
             }
             catch (Exception ex)
             {
-                await HandleEmptyUploadRequestForm(context, ex.Message);
+                await ErrorHandlers.HandleEmptyUploadRequestForm(context, ex.Message);
+            }
+        }
+        public static async Task<string> CheckDownloadedFileStataus(HttpContext context, string directoryPath) {
+            if (FileSystem.GetDirectoryItemsCount(directoryPath) != -1)
+            {
+                string file = FileSystem.GetFirstAudioFile(directoryPath);
+                if (string.IsNullOrEmpty(file))
+                {
+                    await ErrorHandlers.HandleDownloadRequestFileSystemError(context, "File did not get downloaded");
+                    return "";
+                }
+                else
+                {
+                    return file;
+                }
+            }
+            else
+            {
+                await ErrorHandlers.HandleDownloadRequestFileSystemError(context, "File did not get downloaded");
+                return "";
+            }
+        }
+        public static async Task DownloadFromYoutube(HttpContext context, string url) {
+            var directoryResult = ProcessHandling.CreateUniqueDirectory();
+            if (string.IsNullOrEmpty(directoryResult))
+            {
+                await ErrorHandlers.HandleDownloadRequestFileSystemError(context, "Failed to create drectory");
+                return; 
+            }
+            var directoryPath = $@".\DownloadedFiles\{directoryResult}\";
+
+            _ = ProcessHandling.RunProcess($"yt-dlp -x {url}", directoryPath);
+            string result = await CheckDownloadedFileStataus(context, directoryPath);
+
+            if (!string.IsNullOrEmpty(result))
+            {
+                await DownloadFile(context, result);
+            }
+
+        }
+
+        public static bool CleanUpDownloadedFile(string directoryNameFromRoot) {
+            try
+            {
+                Directory.Delete(directoryNameFromRoot, true);
+                return true;
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return false;
             }
         }
 
+        public static async Task HandleDownloadFromYoutubeRequest(HttpContext context)
+        {
+            try { 
+                var url = context.Request.Query["url"];
+                if (string.IsNullOrEmpty(url))
+                {
+                    await ErrorHandlers.HandleEmptyDownloadLinkError(context, "Empty url!");
+                    return;
+                }
+                await DownloadFromYoutube(context, url);
+            }
+            catch(Exception ex)
+            {
+                await ErrorHandlers.HandleDownloadRequestError(context, ex.Message); 
+            }
+
+
+        }
+
+        public static async Task HandleCleanUpRequest(HttpContext context)
+        {
+            try
+            {
+                bool result = FileSystem.DeleteFilesAndSubdirectories("./DownloadedFiles");
+                if (result)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                }
+                else
+                {
+                    throw new Exception("Failed to delete the files");
+                }
+            }
+            catch(Exception e)
+            {
+                await ErrorHandlers.HandleCleanUpRequestSystemError(context, e.Message);
+            }
+        }
 
     }
 }

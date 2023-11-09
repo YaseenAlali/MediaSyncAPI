@@ -44,14 +44,24 @@ app.MapGet("/stream", (RequestDelegate)(async (HttpContext context) =>
 
 app.MapGet("/download", (RequestDelegate)(async (HttpContext context) =>
 {
-    var path = context.Request.Query["file"];
-    await FileServer.DownloadFile(context, path);   
+    await FileServer.HandleDownloadRequest(context);
 }));
+
 
 app.MapPost("/upload", (RequestDelegate)(async (HttpContext context) =>
 {
     await FileServer.UploadFile(context);
 }));
+
+app.MapGet("/fetch", (RequestDelegate)(async (HttpContext context) =>
+{
+    await FileServer.HandleDownloadFromYoutubeRequest(context);
+}));
+
+app.MapGet("/cleanup", async (HttpContext context) =>
+{
+    await FileServer.HandleCleanUpRequest(context);
+});
 
 
 

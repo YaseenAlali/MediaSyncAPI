@@ -21,7 +21,7 @@ namespace MediaSyncAPI.MediaController
             {
                 string[] mediaExtensions =
                 {
-                    "mp3", ".wav", ".flac", "opus", ".ogg"
+                    "mp3", ".wav", ".flac", "opus", ".ogg", ".aac"
                 };
 
 
