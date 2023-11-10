@@ -15,6 +15,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+bool launchSuccesssful = FileSystem.CreateDownloadedFilesDirectory();
+if (!launchSuccesssful)
+    return;
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -28,7 +31,7 @@ MediaList.APIEntry();
 
 app.MapGet("/list", () =>
 {
-    var forecast = MediaList.APIList();
+    var forecast = MediaList.HandleListRequest();
     return forecast;
 })
 .WithName("list")

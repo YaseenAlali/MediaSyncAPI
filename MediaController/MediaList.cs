@@ -16,7 +16,7 @@ namespace MediaSyncAPI.MediaController
             MediaPath = "D:\\stuff\\MusicNew";
         }
 
-        public static string APIList()
+        public static string HandleListRequest()
         {
             try
             {

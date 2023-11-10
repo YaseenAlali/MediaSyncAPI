@@ -127,5 +127,25 @@
                 return false;
             }
         }
+
+        public static bool CheckDownloadedFilesDirectoryAndCreateIfNotExisting()
+        {
+            try
+            {
+                if (Directory.Exists("DownloadedFles"))
+                {
+                    return true;
+                }
+                else { 
+                    bool created = CreateDownloadedFilesDirectory();
+                    return created;
+                }
+            }
+            catch( Exception ex )
+            {
+                Console.WriteLine(ex.Message);
+                return false;
+            }
+        }
     }
 }
