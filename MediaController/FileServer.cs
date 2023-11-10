@@ -62,13 +62,6 @@ namespace MediaSyncAPI.MediaController
         public static async Task StreamFile(HttpContext context, string path)
         {
             try {
-                path = $"{MediaList.MediaPath}\\{WebUtility.UrlDecode(path)}";
-
-                bool fileExists = await CheckFileExistsSupposedToExist(context, path);
-                if (!fileExists)
-                {
-                    return;
-                }
                 Stream stream = File.OpenRead(path);
                 FileInfo fileInfo = new FileInfo(path);
                 long length = fileInfo.Length;
@@ -101,6 +94,15 @@ namespace MediaSyncAPI.MediaController
            
         }
 
+        public static async Task HandleStreamFileRequest(HttpContext context) {
+            var path = await RetrieveFileFormValidator.FormValidator(context);
+            if (string.IsNullOrEmpty(path)) {
+                return; 
+            }
+            await StreamFile(context, path);
+        
+        }
+
         public static async Task HandleDownloadRequest(HttpContext context)  {
             var path = await RetrieveFileFormValidator.FormValidator(context);
             if (string.IsNullOrEmpty(path))
@@ -108,7 +110,7 @@ namespace MediaSyncAPI.MediaController
                 return;
             }
 
-            await FileServer.DownloadFile(context, path);
+            await DownloadFile(context, path);
         }
 
         public static async Task DownloadFile(HttpContext context, string path)

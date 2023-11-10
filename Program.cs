@@ -36,9 +36,7 @@ app.MapGet("/list", () =>
 
 app.MapGet("/stream", (RequestDelegate)(async (HttpContext context) =>
 {
-    //string path = "Rock\\01 - Cult Of Personality.flac";
-    var path = context.Request.Query["file"];
-    await FileServer.StreamFile(context, path);
+    await FileServer.HandleStreamFileRequest(context);
 }));
 
 
