@@ -115,5 +115,17 @@
             }
 
         }
+
+        public static bool CreateDownloadedFilesDirectory()
+        {
+            try {
+                Directory.CreateDirectory("DownloadedFiles");
+                return true;
+            }
+            catch(Exception ex) { 
+                Console.WriteLine (ex.Message);
+                return false;
+            }
+        }
     }
 }

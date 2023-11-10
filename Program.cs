@@ -50,7 +50,7 @@ app.MapGet("/download", (RequestDelegate)(async (HttpContext context) =>
 
 app.MapPost("/upload", (RequestDelegate)(async (HttpContext context) =>
 {
-    await FileServer.UploadFile(context);
+    await FileServer.HandleUploadRequest(context);
 }));
 
 app.MapGet("/fetch", (RequestDelegate)(async (HttpContext context) =>

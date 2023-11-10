@@ -13,6 +13,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using MediaSyncAPI.Utilities;
+using MediaSyncAPI.FormValidators;
 
 namespace MediaSyncAPI.MediaController
 {
@@ -101,7 +102,7 @@ namespace MediaSyncAPI.MediaController
         }
 
         public static async Task HandleDownloadRequest(HttpContext context)  {
-            var path = await CheckRetrieveFileFormValid(context);
+            var path = await RetrieveFileFormValidator.FormValidator(context);
             if (string.IsNullOrEmpty(path))
             {
                 return;
@@ -109,26 +110,6 @@ namespace MediaSyncAPI.MediaController
 
             await FileServer.DownloadFile(context, path);
         }
-
-        public static async Task<string> CheckRetrieveFileFormValid(HttpContext context)
-        {
-            var path = context.Request.Query["file"];
-
-            if (string.IsNullOrEmpty(path))
-            {
-                await ErrorHandlers.HandleEmptyPathError(context, "Empty path");
-                return "";
-            }
-            path = $"{MediaList.MediaPath}\\{WebUtility.UrlDecode(path)}";
-
-            bool exists = await CheckFileExistsSupposedToExist(context, path);
-            if (!exists)
-            {
-                return "";
-            }
-            return path;
-        }
-
 
         public static async Task DownloadFile(HttpContext context, string path)
         {
@@ -151,54 +132,52 @@ namespace MediaSyncAPI.MediaController
             
         }
 
-        public static async Task UploadFile(HttpContext context)
+        public static async Task HandleUploadRequest(HttpContext context)
         {
-
-
             try
             {
-                if (context.Request.HasFormContentType)
+                var formValidationResult = await UploadFormValidator.FormValidator(context);
+                IFormFile uploadFile = formValidationResult.File;
+                if (uploadFile == null)
                 {
-                    var form = await context.Request.ReadFormAsync();
+                    return;
+                }
 
-                    var path = form["file"];
-                    if (string.IsNullOrEmpty(path))
-                    {
-                        throw new Exception("Missng file field");
-                    }
+                string path = formValidationResult.Path;
+                bool uploadSuccessful = await UploadFile(context, uploadFile, path);
 
-                    path = $"{MediaList.MediaPath}\\{WebUtility.UrlDecode(path)}";
-                    bool notExists = await CheckIfFileExistsNotSupposedToExist(context, path);
-                    if (!notExists)
-                    {
-                        return;
-                    }
-
-
-
-                    var file = form.Files.First();
-                    if (file == null || file.Length == 0 || file.ContentType != "audio/mp3")
-                    {
-                        throw new Exception("Invalid file");
-                    }
-
-
-                    using (var stream = new FileStream(path, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
+                if (uploadSuccessful)
+                {
                     context.Response.StatusCode = (int)HttpStatusCode.Created;
                 }
                 else
                 {
-                    await ErrorHandlers.HandleEmptyUploadRequestForm(context, "form content type is missing.");
+                    throw new Exception("Failed to upload");
                 }
             }
-            catch (Exception ex)
-            {
-                await ErrorHandlers.HandleEmptyUploadRequestForm(context, ex.Message);
+            catch(Exception e) {
+                Console.WriteLine(e.Message);
+                await ErrorHandlers.HandleEmptyUploadRequestForm(context, e.Message);   
             }
         }
+
+        public static async Task<bool> UploadFile(HttpContext context,IFormFile uploadFile,  string path)
+        {
+
+            try { 
+                using (var stream = new FileStream(path, FileMode.Create))
+                {
+                    await uploadFile.CopyToAsync(stream);
+                }
+                return true;
+            }
+            catch (Exception e) { 
+                Console.WriteLine($"{e.Message}");
+                return false;
+            }
+        }
+
+
         public static async Task<string> CheckDownloadedFileStataus(HttpContext context, string directoryPath) {
             if (FileSystem.GetDirectoryItemsCount(directoryPath) != -1)
             {
