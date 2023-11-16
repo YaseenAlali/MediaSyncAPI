@@ -5,6 +5,13 @@ namespace MediaSyncAPI.Utilities
 {
     public class Networking
     {
+        /// <summary>
+        /// Generates a local URL with the specified port.
+        /// </summary>
+        /// <param name="port">The port number to include in the URL. Defaults to "5000" if not provided.</param>
+        /// <returns>
+        /// A string representing the generated local URL, or an empty string if the local IP address is not available.
+        /// </returns>
         public static string GenerateUrl(string port = "5000")
         {
             string localIP = GetLocalIpAddress();
@@ -15,6 +22,13 @@ namespace MediaSyncAPI.Utilities
             return $"http://{localIP}:{port}";
         }
 
+
+        /// <summary>
+        /// Retrieves the local IP address of the machine by establishing a connection to a remote server.
+        /// </summary>
+        /// <returns>
+        /// A string representing the local IP address, or an empty string if the retrieval fails.
+        /// </returns>
         public static string GetLocalIpAddress()
         {
             try { 
