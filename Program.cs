@@ -8,6 +8,10 @@ using Microsoft.Extensions.Configuration;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = null;
+});
 string url = Networking.GenerateUrl();
 if (!string.IsNullOrEmpty(url))
 { 

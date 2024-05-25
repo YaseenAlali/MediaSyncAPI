@@ -30,7 +30,7 @@ namespace MediaSyncAPI.FormValidators
 
                     var file = form.Files.First();
 
-                    if (file == null || file.Length == 0 || file.ContentType != "audio/mp3")
+                    if (file == null || file.Length == 0)
                     {
                         throw new Exception("Invalid file");
                     }

@@ -13,7 +13,7 @@ namespace MediaSyncAPI.MediaController
 
         public static void APIEntry()
         {
-            MediaPath = "D:\\stuff\\MusicNew";
+            MediaPath = "E:\\Music";
             //MediaPath = 
         }
 
